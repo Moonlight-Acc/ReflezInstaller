@@ -119,38 +119,10 @@ public class PanelSoftware : ISoftware
 
         if (!context.HasParameter("--use-http-port") && !context.HasParameter("--use-https-port"))
         {
-            while (true)
-            {
-                var port = AnsiConsole.Ask("[bold white]Please enter the http port moonlight should listen on[/]", 80);
-
-                if (await BashHelper.ExecuteCommand($"ss -ltn | grep \":{port}\" | awk '{{print $4}}' | head -n 1") == "")
-                {
-                    ConsoleHelper.Checked($"Port {port} is unused");
-                
-                    httpPort = port;
-                    break;
-                }
-
-                ConsoleHelper.Error($"The port {port} is currently in use. Remove the program using this port or choose another port");
-            }
+            httpPort = await PortHelper.Ask("Please enter the http port moonlight should listen on", 80);
 
             if (enableSsl)
-            {
-                while (true)
-                {
-                    var port = AnsiConsole.Ask("[bold white]Please enter the https port moonlight should listen on[/]", 433);
-
-                    if (await BashHelper.ExecuteCommand($"ss -ltn | grep \":{port}\" | awk '{{print $4}}' | head -n 1") == "")
-                    {
-                        ConsoleHelper.Checked($"Port {port} is unused");
-                
-                        httpsPort = port;
-                        break;
-                    }
-
-                    ConsoleHelper.Error($"The port {port} is currently in use. Remove the program using this port or choose another port");
-                }
-            }
+                httpsPort = await PortHelper.Ask("Please enter the https port moonlight should listen on", 443);
         }
 
         ConsoleHelper.Info($"App URL: http://{appHost}:{httpPort}");
@@ -160,21 +132,7 @@ public class PanelSoftware : ISoftware
 
         if (enableSsl && !context.HasFlag("--skip-lets-encrypt"))
         {
-            if (await BashHelper.ExecuteCommand("which certbot", ignoreErrors: true) != "" || context.HasFlag("--skip-certbot"))
-                ConsoleHelper.Checked("Certbot already installed");
-            else
-            {
-                await ConsoleHelper.Status("Installing Certbot", async action =>
-                {
-                    await BashHelper.ExecuteWithOutputHandler("apt install python3-certbot -y", (s, b) =>
-                    {
-                        AnsiConsole.WriteLine(s);
-                        return Task.CompletedTask;
-                    });
-                });
-            
-                ConsoleHelper.Checked("Certbot successfully installed");
-            }
+            await CommandHelper.EnsureCommand(context, "certbot", "python3-certbot", "--skip-certbot");
 
             while (true)
             {
@@ -342,7 +300,7 @@ public class PanelSoftware : ISoftware
                 coreConfig.AppUrl = $"http://{appHost}:{httpPort}";
 
             Directory.CreateDirectory("/var/lib/docker/volumes/moonlight/_data/configs/");
-            await File.WriteAllTextAsync("/var/lib/docker/volumes/moonlight/_data/configs/core.json", JsonConvert.SerializeObject(coreConfig));
+            await File.WriteAllTextAsync("/var/lib/docker/volumes/moonlight/_data/configs/core.json", JsonConvert.SerializeObject(coreConfig, Formatting.Indented));
 
             ConsoleHelper.Checked("Core configuration file has been written");
         }
@@ -407,12 +365,12 @@ public class PanelSoftware : ISoftware
         flagsForUpdate.Add("--use-db-database");
         flagsForUpdate.Add(dbDatabase);
         
-        //flagsForUpdate.Add("--skip-config");
-        
         flagsForUpdate.Add("--use-ssl");
         flagsForUpdate.Add(enableSsl.ToString().ToLower());
         
         flagsForUpdate.Add("--skip-lets-encrypt");
+        
+        flagsForUpdate.Add("--skip-config");
         
         flagsForUpdate.Add("--use-app-host");
         flagsForUpdate.Add(appHost);
@@ -509,21 +467,7 @@ public class PanelSoftware : ISoftware
         }
         
         // Git
-        if(await BashHelper.ExecuteCommand("which git", ignoreErrors: true) != "" || context.HasFlag("--skip-git"))
-            ConsoleHelper.Checked("Git already installed");
-        else
-        {
-            await ConsoleHelper.Status("Installing git", async action =>
-            {
-                await BashHelper.ExecuteWithOutputHandler("apt install git -y", (s, b) =>
-                {
-                    AnsiConsole.WriteLine(s);
-                    return Task.CompletedTask;
-                });
-            });
-            
-            ConsoleHelper.Checked("Git successfully installed");
-        }
+        await CommandHelper.EnsureCommand(context, "git", "git", "--skip-git");
         
         // Build dir
         if(Directory.Exists("/tmp/mlbuild") && !context.HasFlag("--skip-delete-ml-build"))

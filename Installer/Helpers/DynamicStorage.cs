@@ -6,4 +6,5 @@ public class DynamicStorage
 
     public void Set(string id, object data) => Data[id] = data;
     public object Get(string id) => Data[id];
+    public T Get<T>(string id) => (T)Data[id];
 }

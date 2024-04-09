@@ -14,7 +14,7 @@ public class BashHelper
         if (process.ExitCode != 0)
         {
             if(!ignoreErrors)
-                throw new Exception(await process.StandardError.ReadToEndAsync());
+                throw new Exception(output);
         }
 
         return output.Trim();

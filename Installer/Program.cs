@@ -25,9 +25,12 @@ else
     return;
 }
 
-
-
 var callContext = new CallContext(args.ToList());
+
+var arch = await BashHelper.ExecuteCommand("uname -m | grep -q 'x86_64' && echo 'x64' || echo 'arm64'");
+callContext.Storage.Set("ARCH", arch);
+ConsoleHelper.Info("Detected architecture: " + arch);
+
 var softwareList = new List<ISoftware>();
 var installedSoftware = new Dictionary<ISoftware, bool>();
 
