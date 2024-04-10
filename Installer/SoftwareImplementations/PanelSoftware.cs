@@ -209,7 +209,7 @@ public class PanelSoftware : ISoftware
         }
         
         // UFW
-        if(await BashHelper.ExecuteCommand("which ufw") == "" || context.HasFlag("--skip-ufw"))
+        if(context.HasFlag("--skip-ufw") || await BashHelper.ExecuteCommand("which ufw", ignoreErrors: true) == "")
             ConsoleHelper.Info("UFW not detected. Skipping firewall configurations");
         else if((await BashHelper.ExecuteCommand("ufw status")).Contains("inactive"))
             ConsoleHelper.Info("UFW disabled. Skipping firewall configurations");
