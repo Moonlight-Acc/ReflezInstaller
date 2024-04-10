@@ -10,13 +10,12 @@ public class CommandHelper
             ConsoleHelper.Checked($"{command} already installed");
         else
         {
-            await ConsoleHelper.Status($"Installing {command}", async action =>
+            ConsoleHelper.Info($"Installing {package} via aptitude");
+            
+            await BashHelper.ExecuteWithOutputHandler($"apt install {package} -y", (s, b) =>
             {
-                await BashHelper.ExecuteWithOutputHandler($"apt install {package} -y", (s, b) =>
-                {
-                    AnsiConsole.WriteLine(s);
-                    return Task.CompletedTask;
-                });
+                AnsiConsole.WriteLine(s);
+                return Task.CompletedTask;
             });
             
             ConsoleHelper.Checked($"{command} successfully installed");
