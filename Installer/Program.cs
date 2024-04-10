@@ -47,15 +47,22 @@ await ConsoleHelper.Status("Checking installed software", async action =>
     }
 });
 
-var selection = new SelectionPrompt<ISoftware>();
-selection.AddChoices(softwareList);
+ISoftware selectedSoftware;
 
-selection.Converter = software => $"[bold white]{software.Name}[/]";
+if (callContext.HasParameter("--use-software"))
+    selectedSoftware = softwareList.First(x => x.Id == callContext.GetRequiredParameterValue<string>("--use-software"));
+else
+{
+    var selection = new SelectionPrompt<ISoftware>();
+    selection.AddChoices(softwareList);
 
-AnsiConsole.WriteLine();
-AnsiConsole.MarkupLine("[white bold]Select the software you want to install/update/uninstall:[/]");
+    selection.Converter = software => $"[bold white]{software.Name}[/]";
 
-var selectedSoftware = AnsiConsole.Prompt(selection);
+    AnsiConsole.WriteLine();
+    AnsiConsole.MarkupLine("[white bold]Select the software you want to install/update/uninstall:[/]");
+    
+    selectedSoftware = AnsiConsole.Prompt(selection);
+}
 
 AnsiConsole.WriteLine();
 
@@ -66,8 +73,15 @@ ConsoleHelper.Info($"Status: {status}");
 
 AnsiConsole.WriteLine();
 
-var action = ConsoleHelper
-    .Selection("Select the action you want to perform", new[] { "Install", "Update", "Uninstall" });
+string action;
+
+if (callContext.HasParameter("--use-action"))
+    action = callContext.GetRequiredParameterValue<string>("--use-action");
+else
+{
+    action = ConsoleHelper
+        .Selection("Select the action you want to perform", new[] { "Install", "Update", "Uninstall" });
+}
 
 try
 {

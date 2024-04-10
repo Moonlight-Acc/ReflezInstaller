@@ -5,6 +5,7 @@ namespace Installer.Abstractions;
 public interface ISoftware
 {
     public string Name { get; }
+    public string Id { get; }
     public IDependency[] Dependencies { get; }
 
     public Task<bool> CheckFulfilled(CallContext context);

@@ -10,7 +10,7 @@ public class PortHelper
         {
             var port = AnsiConsole.Ask($"[bold white]{text}[/]", defaultPort);
 
-            if (await BashHelper.ExecuteCommand($"ss -ltn | grep \":{port}\" | awk '{{print $4}}' | head -n 1") == "")
+            if (await BashHelper.ExecuteCommand($"ss -ltn | grep \":{port} \" | awk '{{print $4}}' | head -n 1") == "")
             {
                 ConsoleHelper.Checked($"Port {port} is unused");
 

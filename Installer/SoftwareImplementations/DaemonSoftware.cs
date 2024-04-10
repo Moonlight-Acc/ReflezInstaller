@@ -3,6 +3,7 @@ using Installer.Abstractions;
 using Installer.DependencyImplementations;
 using Installer.Helpers;
 using Installer.Models;
+using MoonCore.Services;
 using Newtonsoft.Json;
 using Spectre.Console;
 
@@ -10,6 +11,7 @@ namespace Installer.SoftwareImplementations;
 
 public class DaemonSoftware : ISoftware
 {
+    public string Id => "daemon";
     public string Name => "Moonlight Daemon";
 
     private readonly string BinaryPath = "/usr/local/bin/MoonlightDaemon";
@@ -72,7 +74,8 @@ public class DaemonSoftware : ISoftware
 
         if (!File.Exists("/etc/moonlight/config.json") && !context.HasFlag("--skip-config"))
         {
-            var config = new ConfigV1();
+            var configService = new ConfigService<ConfigV1>("/etc/moonlight/config.json");
+            var config = configService.Get();
             
             config.Docker.DnsServers.Add("1.1.1.1");
             config.Docker.DnsServers.Add("9.9.9.9");
@@ -102,8 +105,7 @@ public class DaemonSoftware : ISoftware
             config.Http.UseSsl = enableSsl;
             config.Http.Fqdn = fqdn;
 
-            await File.WriteAllTextAsync("/etc/moonlight/config.json",
-                JsonConvert.SerializeObject(config, Formatting.Indented));
+            configService.Save();
 
             ConsoleHelper.Checked("Written configuration to disk");
         }
@@ -324,6 +326,12 @@ public class DaemonSoftware : ISoftware
             
             if(File.Exists("/usr/local/bin/MoonlightDaemon"))
                 File.Delete("/usr/local/bin/MoonlightDaemon");
+            
+            if(File.Exists("/etc/moonlight/config.json.bak"))
+                File.Delete("/etc/moonlight/config.json.bak");
+            
+            if(File.Exists("/etc/moonlight/config.json"))
+                File.Move("/etc/moonlight/config.json", "/etc/moonlight/config.json.bak");
         });
 
         ConsoleHelper.Checked("Successfully removed the moonlight daemon");

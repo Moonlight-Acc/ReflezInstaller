@@ -4,6 +4,7 @@ using Installer.DependencyImplementations;
 using Installer.Helpers;
 using Installer.Models;
 using MoonCore.Helpers;
+using MoonCore.Services;
 using Newtonsoft.Json;
 using Spectre.Console;
 
@@ -11,6 +12,7 @@ namespace Installer.SoftwareImplementations;
 
 public class PanelSoftware : ISoftware
 {
+    public string Id => "moonlight";
     public string Name => "Moonlight Panel";
     public IDependency[] Dependencies { get; } = {
         new DockerDependency()
@@ -136,7 +138,7 @@ public class PanelSoftware : ISoftware
 
             while (true)
             {
-                if (await BashHelper.ExecuteCommand("ss -ltn | grep \":80\" | awk '{print $4}' | head -n 1") ==
+                if (await BashHelper.ExecuteCommand("ss -ltn | grep \":80 \" | awk '{print $4}' | head -n 1") ==
                     "")
                 {
                     ConsoleHelper.Checked("Port 80 is ready to be used by certbot");
@@ -278,8 +280,11 @@ public class PanelSoftware : ISoftware
 
         if (!context.HasFlag("--skip-config"))
         {
+            Directory.CreateDirectory("/var/lib/docker/volumes/moonlight/_data/configs/");
+            
             // Core configuration
-            var coreConfig = new CoreConfiguration();
+            var configService = new ConfigService<CoreConfiguration>("/var/lib/docker/volumes/moonlight/_data/configs/core.json");
+            var coreConfig = configService.Get();
 
             coreConfig.Database.Host = dbHost;
             coreConfig.Database.Port = dbPort;
@@ -298,50 +303,53 @@ public class PanelSoftware : ISoftware
                 coreConfig.AppUrl = $"https://{appHost}:{httpsPort}";
             else
                 coreConfig.AppUrl = $"http://{appHost}:{httpPort}";
-
-            Directory.CreateDirectory("/var/lib/docker/volumes/moonlight/_data/configs/");
-            await File.WriteAllTextAsync("/var/lib/docker/volumes/moonlight/_data/configs/core.json", JsonConvert.SerializeObject(coreConfig, Formatting.Indented));
-
+            
+            configService.Save();
+            
             ConsoleHelper.Checked("Core configuration file has been written");
         }
         
         // Deploy
-        await ConsoleHelper.Status("Deploying moonlight container", async action =>
+
+        if (!context.HasFlag("--skip-deploy"))
         {
-            action.Invoke("Checking for existing moonlight container");
-            if (await BashHelper.ExecuteCommandForExitCode("docker container inspect moonlight") == 0)
+            await ConsoleHelper.Status("Deploying moonlight container", async action =>
             {
-                action.Invoke("Removing existing moonlight container");
-                await BashHelper.ExecuteCommand("docker container kill moonlight", ignoreErrors: true);
-                await BashHelper.ExecuteCommand("docker container rm moonlight");
-            }
+                action.Invoke("Checking for existing moonlight container");
+                if (await BashHelper.ExecuteCommandForExitCode("docker container inspect moonlight") == 0)
+                {
+                    action.Invoke("Removing existing moonlight container");
+                    await BashHelper.ExecuteCommand("docker container kill moonlight", ignoreErrors: true);
+                    await BashHelper.ExecuteCommand("docker container rm moonlight");
+                }
 
-            var command =
-                $"docker run -d -p {httpPort}:80 --add-host=host.docker.internal:host-gateway -v moonlight:/app/storage --name moonlight --restart=always";
+                var command =
+                    $"docker run -d -p {httpPort}:80 --add-host=host.docker.internal:host-gateway -v moonlight:/app/storage --name moonlight --restart=always";
 
-            if (enableSsl)
-            {
-                command +=
-                    $" --mount type=bind,source=/etc/letsencrypt/live/{appHost}/cert.pem,target=/app/cert.pem";
+                if (enableSsl)
+                {
+                    command +=
+                        $" --mount type=bind,source=/etc/letsencrypt/live/{appHost}/cert.pem,target=/app/cert.pem";
 
-                command +=
-                    $" --mount type=bind,source=/etc/letsencrypt/live/{appHost}/privkey.pem,target=/app/privkey.pem";
+                    command +=
+                        $" --mount type=bind,source=/etc/letsencrypt/live/{appHost}/privkey.pem,target=/app/privkey.pem";
 
-                command += $" -p {httpsPort}:443";
-            }
+                    command += $" -p {httpsPort}:443";
+                }
 
-            command += $" {dockerImageName}";
+                command += $" {dockerImageName}";
 
-            action.Invoke("Creating moonlight container");
-            await BashHelper.ExecuteWithOutputHandler(command, (s, b) =>
-            {
-                AnsiConsole.WriteLine(s);
-                return Task.CompletedTask;
+                action.Invoke("Creating moonlight container");
+                await BashHelper.ExecuteWithOutputHandler(command, (s, b) =>
+                {
+                    AnsiConsole.WriteLine(s);
+                    return Task.CompletedTask;
+                });
             });
-        });
         
-        ConsoleHelper.Checked("Successfully deployed moonlight container");
-
+            ConsoleHelper.Checked("Successfully deployed moonlight container");
+        }
+        
         var flagsForUpdate = new List<string>();
         
         flagsForUpdate.Add("--use-channel");
@@ -509,24 +517,17 @@ public class PanelSoftware : ISoftware
         // Building moonlight scss
         await ConsoleHelper.Status("Compiling scss", async action =>
         {
-            await BashHelper.ExecuteWithOutputHandler("(cd /tmp/mlbuild; cd Moonlight/Styles; bash build.bat;)", (s, b) =>
+            await BashHelper.ExecuteWithOutputHandler("bash build.bat", (s, b) =>
             {
                 AnsiConsole.WriteLine(s);
                 return Task.CompletedTask;
-            });
+            }, "/tmp/mlbuild/Moonlight/Styles");
         });
         
         ConsoleHelper.Checked("Successfully compiled scss");
         
         // Building moonlight docker image
-        await ConsoleHelper.Status("Building docker image", async action =>
-        {
-            await BashHelper.ExecuteWithOutputHandler("(cd /tmp/mlbuild; docker build -t moonlightpanel/moonlight:custom -f Moonlight/Dockerfile .)", (s, b) =>
-            {
-                AnsiConsole.WriteLine(s);
-                return Task.CompletedTask;
-            });
-        });
+        await BashHelper.ExecuteCommand("docker build -t moonlightpanel/moonlight:custom -f Moonlight/Dockerfile .", captureOutput: false, workingDir: "/tmp/mlbuild");
         
         ConsoleHelper.Checked("Successfully built docker image");
     }

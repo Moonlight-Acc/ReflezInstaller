@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="MoonCore" Version="1.1.9" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <PackageReference Include="Spectre.Console" Version="0.48.1-preview.0.38" />
     </ItemGroup>
 

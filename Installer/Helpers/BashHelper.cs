@@ -4,11 +4,11 @@ namespace Installer.Helpers;
 
 public class BashHelper
 {
-    public static async Task<string> ExecuteCommand(string command, bool ignoreErrors = false, bool showOutput = false, string? workingDir = default)
+    public static async Task<string> ExecuteCommand(string command, bool ignoreErrors = false, bool captureOutput = true, string? workingDir = default)
     {
-        var process = await ExecuteCommandRaw(command, workingDir);
+        var process = await ExecuteCommandRaw(command, workingDir, captureOutput);
 
-        string output = showOutput ? "" : await process.StandardOutput.ReadToEndAsync();
+        var output = captureOutput ? await process.StandardOutput.ReadToEndAsync() : "";
         await process.WaitForExitAsync();
 
         if (process.ExitCode != 0)
@@ -53,15 +53,15 @@ public class BashHelper
         }
     }
     
-    public static Task<Process> ExecuteCommandRaw(string command, string? workingDir = default)
+    public static Task<Process> ExecuteCommandRaw(string command, string? workingDir = default, bool captureOutput = true)
     {
         Process process = new Process();
         
         process.StartInfo.FileName = "/bin/bash";
         process.StartInfo.Arguments = $"-c \"{command.Replace("\"", "\\\"")}\"";
         process.StartInfo.UseShellExecute = false;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.RedirectStandardOutput = captureOutput;
+        process.StartInfo.RedirectStandardError = captureOutput;
 
         if (workingDir != null)
             process.StartInfo.WorkingDirectory = workingDir;

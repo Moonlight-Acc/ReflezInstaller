@@ -4,6 +4,8 @@
     <option name="locations">
       <list>
         <option value="$PROJECT_DIR$/Installer/bin/Release/net6.0/linux-x64/publish" />
+        <option value="$PROJECT_DIR$/Installer/bin/Release/net7.0/linux-x64/publish" />
+        <option value="$PROJECT_DIR$/Installer/bin/Release/net7.0/linux-arm64/publish" />
       </list>
     </option>
   </component>
