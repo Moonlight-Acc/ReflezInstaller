@@ -74,6 +74,8 @@ public class DaemonSoftware : ISoftware
 
         if (!File.Exists("/etc/moonlight/config.json") && !context.HasFlag("--skip-config"))
         {
+            Directory.CreateDirectory("/etc/moonlight");
+            
             var configService = new ConfigService<ConfigV1>("/etc/moonlight/config.json");
             var config = configService.Get();
             
