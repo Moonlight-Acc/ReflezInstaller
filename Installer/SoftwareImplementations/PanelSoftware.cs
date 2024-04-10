@@ -145,7 +145,7 @@ public class PanelSoftware : ISoftware
                     break;
                 }
                 
-                ConsoleHelper.Error("The port 80 is currently in use. In order to start the certbot, port 80 needs to be available. Please stop any program running on port 80 and press [Enter]");
+                ConsoleHelper.Error("The port 80 is currently in use. In order to start the certbot, port 80 needs to be available. Please stop any program running on port 80 and press [[Enter]]");
                 Console.ReadLine();
             }
 
