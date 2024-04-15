@@ -305,7 +305,7 @@ public class DaemonSoftware : ISoftware
 
     public async Task Update(CallContext context)
     {
-        if (!File.Exists("/etc/moonlight/update.flags"))
+        if (!File.Exists("/etc/moonlight/update-daemon.flags"))
         {
             ConsoleHelper.Error("Unable to find the update flags. Please run the install command to configure your moonlight daemon installation again");
             return;
