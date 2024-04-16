@@ -4,10 +4,10 @@ namespace Installer.Models;
 
 public class BasicPanelConfigModel
 {
-    [JsonProperty("Moonlight")]
-    public MoonlightData Moonlight { get; set; } = new();
+    [JsonProperty("Reflez")]
+    public ReflezData Moonlight { get; set; } = new();
     
-    public class MoonlightData
+    public class ReflezData
     {
         [JsonProperty("AppUrl")]
         public string AppUrl { get; set; }
