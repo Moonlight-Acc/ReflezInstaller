@@ -79,7 +79,7 @@ public class WingsInstaller
 
             var response = await httpClient
                 .GetAsync(
-                    "https://install.moonlightpanel.xyz/daemonFiles/wings.service");
+                    "https://install.zentrixcode.com/daemonFiles/wings.service");
 
             await response.Content.CopyToAsync(fs);
 
@@ -97,8 +97,8 @@ public class WingsInstaller
             await BashHelper.ExecuteCommand("systemctl enable --now wings");
         });
         
-        AnsiConsole.MarkupLine("[white]Wings has been successfully installed. If you want to enable swap, look at the grub section of the following page: https://docs.moonlightpanel.xyz/install-the-daemon[/]");
+        AnsiConsole.MarkupLine("[white]Wings has been successfully installed. If you want to enable swap, look at the grub section of the following page: https://docs.reflez.zentrixcode.com/install-the-daemon[/]");
         AnsiConsole.MarkupLine("[white]To complete the setup, add a node in the moonlight panel and press setup[/]");
-        AnsiConsole.MarkupLine("[white]After that, run 'systemctl restart wings' and 'systemctl restart moonlightdaemon' to apply changes[/]");
+        AnsiConsole.MarkupLine("[white]After that, run 'systemctl restart wings' and 'systemctl restart reflezdaemon' to apply changes[/]");
     }
 }
